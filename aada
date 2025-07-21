@@ -1,0 +1,49 @@
+-- ⚠️ For dev simulation/testing — vase + ore looting with damage interrupt
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+local damaged = false
+
+local sellLocation = Vector3.new(-35, 140, -397)
+
+-- Stop the script if the player gets hurt
+humanoid.HealthChanged:Connect(function(health)
+	if health < humanoid.MaxHealth then
+		damaged = true
+	end
+end)
+
+-- Loot up to a limit from a folder of models
+local function lootFolder(folder, limit)
+	local count = 0
+	for _, model in ipairs(folder:GetChildren()) do
+		if damaged then break end
+		if limit and count >= limit then break end
+
+		local part = model:FindFirstChild("Part")
+		local prompt = model:FindFirstChildWhichIsA("ProximityPrompt", true)
+
+		if part and prompt and prompt.Enabled then
+			hrp.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+			task.wait(0.4)
+			fireproximityprompt(prompt)
+			count += 1
+		end
+	end
+end
+
+-- Step 1: Loot ONLY 5 vases
+lootFolder(workspace:WaitForChild("Vases"), 5)
+
+-- Step 2: Loot ALL ores (if not damaged)
+if not damaged then
+	lootFolder(workspace:WaitForChild("Ores"))
+end
+
+-- Step 3: If damaged at any point, teleport to sell location
+if damaged then
+	hrp.CFrame = CFrame.new(sellLocation)
+end
