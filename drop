@@ -1,0 +1,98 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local backpackPath = player:WaitForChild("PlayerGui"):WaitForChild("Backpack"):WaitForChild("Frame"):WaitForChild("Frame")
+
+local frameNames = {
+    "Frame1",
+    "Frame2",
+    "Frame3",
+    "Frame4",
+    "Frame5"
+}
+
+local targetPos = Vector3.new(-35, 140, -397)
+local clickRadius = 5 -- studs
+
+-- Store frames info for drops and syncing
+local frames = {}
+local connections = {}
+
+-- Setup frames table and amount change connections for syncing
+for _, frameName in ipairs(frameNames) do
+    local frame = backpackPath:WaitForChild(frameName)
+    local dropRemote = frame:WaitForChild("Drop")
+    local amountValue = frame:WaitForChild("CurrentItem"):WaitForChild("Amount")
+    local textbox = frame:WaitForChild("Frame"):WaitForChild("TextBox")
+
+    -- Initial sync of TextBox
+    textbox.Text = tostring(amountValue.Value)
+
+    -- Disconnect previous connection if exists
+    if connections[frameName] then
+        connections[frameName]:Disconnect()
+    end
+
+    -- Connect Amount value change to update TextBox text
+    connections[frameName] = amountValue:GetPropertyChangedSignal("Value"):Connect(function()
+        textbox.Text = tostring(amountValue.Value)
+    end)
+
+    table.insert(frames, {
+        frame = frame,
+        dropRemote = dropRemote,
+        textbox = textbox
+    })
+end
+
+-- Function to check if player near target position
+local function isNearTarget()
+    local char = player.Character
+    if not char then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    return (hrp.Position - targetPos).Magnitude <= clickRadius
+end
+
+-- Function to drop items for all frames
+local function dropAll()
+    for _, data in ipairs(frames) do
+        local amount = tonumber(data.textbox.Text)
+        if amount then
+            print("Dropping", amount, "from", data.frame.Name)
+            data.dropRemote:FireServer(amount)
+            wait(0.1)
+        end
+    end
+end
+
+-- Coroutine 1: Sync TextBoxes continuously every 5 seconds
+coroutine.wrap(function()
+    while true do
+        for _, frameData in ipairs(frames) do
+            local amountValue = frameData.frame:WaitForChild("CurrentItem"):WaitForChild("Amount")
+            local textbox = frameData.textbox
+            -- Update TextBox text to match amountValue
+            textbox.Text = tostring(amountValue.Value)
+        end
+        print("[💣] Synced TextBoxes with real Amount values.")
+        wait(5)
+    end
+end)()
+
+-- Coroutine 2: Check proximity and drop items independently
+coroutine.wrap(function()
+    local droppedRecently = false
+    while true do
+        if isNearTarget() then
+            if not droppedRecently then
+                print("Player near target, dropping all items...")
+                dropAll()
+                droppedRecently = true
+            end
+        else
+            droppedRecently = false
+        end
+        wait(1)
+    end
+end)()
