@@ -1,0 +1,66 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+
+local sellLocation = Vector3.new(-35, 140, -397)
+local damaged = false
+
+humanoid.HealthChanged:Connect(function(health)
+	if health < humanoid.MaxHealth then
+		damaged = true
+	end
+end)
+
+-- Collect any drop near a position (within radius)
+local function collectNearbyDrops(position, radius)
+	local collected = false
+	for _, item in ipairs(workspace:WaitForChild("DroppedMaterials"):GetChildren()) do
+		if item:IsA("Part") and (item.Position - position).Magnitude <= radius then
+			hrp.CFrame = CFrame.new(item.Position + Vector3.new(0, 2, 0))
+			task.wait(0.4)
+
+			-- Optional: If item has a proximity prompt
+			local prompt = item:FindFirstChildWhichIsA("ProximityPrompt", true)
+			if prompt then
+				fireproximityprompt(prompt, 1)
+			end
+
+			collected = true
+			task.wait(0.3)
+		end
+	end
+	return collected
+end
+
+-- Loot a set number of vases and collect drops after each
+local function lootVases(limit)
+	local count = 0
+	for _, model in ipairs(workspace:WaitForChild("Vases"):GetChildren()) do
+		if damaged then break end
+		if count >= limit then break end
+
+		local part = model:FindFirstChild("Part")
+		local prompt = model:FindFirstChildWhichIsA("ProximityPrompt", true)
+
+		if part and prompt and prompt.Enabled then
+			hrp.CFrame = part.CFrame + Vector3.new(0, 2.5, 0)
+			task.wait(0.4)
+			fireproximityprompt(prompt, 1)
+			count += 1
+
+			task.wait(0.5) -- let the vase finish opening
+
+			-- Collect drops nearby (15 stud range)
+			collectNearbyDrops(part.Position, 15)
+		end
+	end
+end
+
+-- Do the run
+lootVases(5)
+
+if damaged then
+	hrp.CFrame = CFrame.new(sellLocation)
+end
