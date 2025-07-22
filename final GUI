@@ -1,5 +1,7 @@
 local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
+
 local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 
@@ -8,14 +10,17 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ByteLockeHub"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+screenGui.IgnoreGuiInset = true
 
 -- === Main Frame ===
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 350, 0, 300)
 mainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
-mainFrame.BackgroundColor3 = Color3.fromRGB(0, 128, 128) -- fallback color
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 128, 128)
 mainFrame.ClipsDescendants = true
+mainFrame.ZIndex = 10
 mainFrame.Parent = screenGui
 
 -- Rounded corners & gradient
@@ -89,6 +94,7 @@ local minimizeCorner = Instance.new("UICorner")
 minimizeCorner.CornerRadius = UDim.new(0, 12)
 minimizeCorner.Parent = minimizeButton
 
+-- Container that holds buttons area
 local buttonsContainer = Instance.new("Frame")
 buttonsContainer.Name = "ButtonsContainer"
 buttonsContainer.Size = UDim2.new(1, 0, 1, -80)
@@ -222,22 +228,27 @@ minimizeButton.MouseButton1Click:Connect(function()
 end)
 
 -- === Draggable logic ===
-local dragging
-local dragInput
-local dragStart
-local startPos
+local dragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
 
 local function update(input)
 	local delta = input.Position - dragStart
-	mainFrame.Position = UDim2.new(
-		math.clamp(startPos.X.Scale, 0, 1),
-		math.clamp(startPos.X.Offset + delta.X, 0, workspace.CurrentCamera.ViewportSize.X - mainFrame.AbsoluteSize.X),
-		math.clamp(startPos.Y.Scale, 0, 1),
-		math.clamp(startPos.Y.Offset + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y - mainFrame.AbsoluteSize.Y)
-	)
+	local newPosX = startPos.X.Offset + delta.X
+	local newPosY = startPos.Y.Offset + delta.Y
+
+	local screenSize = workspace.CurrentCamera.ViewportSize
+	local frameSize = mainFrame.AbsoluteSize
+
+	-- Clamp so the frame stays fully on screen
+	newPosX = math.clamp(newPosX, 0, screenSize.X - frameSize.X)
+	newPosY = math.clamp(newPosY, 0, screenSize.Y - frameSize.Y)
+
+	mainFrame.Position = UDim2.new(0, newPosX, 0, newPosY)
 end
 
-titleBar.InputBegan:Connect(function(input)
+mainFrame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		dragging = true
 		dragStart = input.Position
@@ -251,7 +262,7 @@ titleBar.InputBegan:Connect(function(input)
 	end
 end)
 
-titleBar.InputChanged:Connect(function(input)
+mainFrame.InputChanged:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 		dragInput = input
 	end
@@ -262,3 +273,13 @@ UserInputService.InputChanged:Connect(function(input)
 		update(input)
 	end
 end)
+
+-- Keep GUI always on top by resetting Parent on menu open/close
+local function keepOnTop()
+	screenGui.Parent = PlayerGui
+	mainFrame.ZIndex = 10
+end
+
+GuiService.MenuOpened:Connect(keepOnTop)
+GuiService.MenuClosed:Connect(keepOnTop)
+keepOnTop()
