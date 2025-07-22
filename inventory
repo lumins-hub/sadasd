@@ -1,0 +1,39 @@
+local player = game:GetService("Players").LocalPlayer
+local backpackPath = player:WaitForChild("PlayerGui"):WaitForChild("Backpack"):WaitForChild("Frame"):WaitForChild("Frame")
+
+local frameNames = {
+    "Frame1",
+    "Frame2",
+    "Frame3",
+    "Frame4",
+    "Frame5"
+}
+
+while true do
+    for _, frameName in ipairs(frameNames) do
+        local success, err = pcall(function()
+            local frame = backpackPath:WaitForChild(frameName)
+            local amountValue = frame:WaitForChild("CurrentItem"):WaitForChild("Amount")
+            local textbox = frame:WaitForChild("Frame"):WaitForChild("TextBox")
+
+            -- Set initial value
+            textbox.Text = tostring(amountValue.Value)
+
+            -- Clear previous connections before connecting new ones (optional but recommended)
+            -- You'd need to store connections to disconnect them, 
+            -- but for simplicity, we just connect here each loop (could cause multiple connections!)
+
+            amountValue:GetPropertyChangedSignal("Value"):Connect(function()
+                textbox.Text = tostring(amountValue.Value)
+            end)
+        end)
+
+        if not success then
+            warn("Error in " .. frameName .. ": " .. tostring(err))
+        end
+    end
+
+    print("[💣] Synced TextBoxes with real Amount values.")
+
+    wait(5) -- wait 5 seconds before next sync cycle; adjust as needed
+end
