@@ -1,37 +1,31 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
+local Players   = game:GetService("Players")
+local player    = Players.LocalPlayer
+local char      = player.Character or player.CharacterAdded:Wait()
+local hrp       = char:WaitForChild("HumanoidRootPart")
+local humanoid  = char:WaitForChild("Humanoid")
 
-local remote = character:WaitForChild("Iron Pickaxe"):WaitForChild("Events"):WaitForChild("Damage")
-
--- Replace with your actual sell location CFrame
+local remote    = char:WaitForChild("Steel Pickaxe"):WaitForChild("Events"):WaitForChild("Damage")
 local sellCFrame = CFrame.new(0, 10, 0)
 
 local damaged = false
-
--- Detect damage
-humanoid.HealthChanged:Connect(function(health)
-    if health < humanoid.MaxHealth then
+humanoid.HealthChanged:Connect(function(h)
+    if h < humanoid.MaxHealth then
         damaged = true
     end
 end)
 
--- Function to get all iron parts
 local function getIronParts()
-    local irons = {}
-    for _, part in pairs(workspace:GetDescendants()) do
+    local list = {}
+    for _, part in ipairs(workspace:GetDescendants()) do
         if part:IsA("BasePart") and part.Name == "Iron" then
-            table.insert(irons, part)
+            table.insert(list, part)
         end
     end
-    return irons
+    return list
 end
 
--- Activate proximity prompt on part to pick it up
-local function activateProximityPrompt(part)
-    for _, obj in pairs(part:GetDescendants()) do
+local function activatePrompt(part)
+    for _, obj in ipairs(part:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
             obj:InputHoldBegin()
             wait(0.1)
@@ -42,51 +36,40 @@ local function activateProximityPrompt(part)
     return false
 end
 
--- Mine one iron part 4 times
-local function mineIronPart(ironPart)
+local function mineNode(node)
     for i = 1, 4 do
         if damaged then
-            print("Damaged detected! Going to sell...")
             hrp.CFrame = sellCFrame
-            return true -- signal stop mining
+            return true
         end
 
-        -- Teleport to iron
-        hrp.CFrame = ironPart.CFrame + Vector3.new(0, 3, 0)
+        -- Teleport to iron node
+        hrp.CFrame = node.CFrame + Vector3.new(0, 3, 0)
         wait(0.2)
 
-        -- Fire remote with Iron and Rock in args
+        -- Fire the remote with only one arg now
         local args = {
-            workspace:WaitForChild("Iron"),
-            workspace:WaitForChild("Coal"):WaitForChild("Coal"):WaitForChild("Rock")
+            workspace:WaitForChild("Iron"):WaitForChild("Iron"):WaitForChild("Rock")
         }
         remote:FireServer(unpack(args))
         wait(0.3)
 
-        -- Find dropped iron part to pick up
-        local droppedIron = nil
-        local droppedMaterials = workspace:FindFirstChild("DroppedMaterials")
-        if droppedMaterials then
-            for _, drop in pairs(droppedMaterials:GetChildren()) do
-                if drop.Name == "Iron" and (drop.Position - hrp.Position).Magnitude < 10 then
-                    droppedIron = drop
+        -- Try to pick up dropped iron
+        local dropped
+        local drops = workspace:FindFirstChild("DroppedMaterials")
+        if drops then
+            for _, d in ipairs(drops:GetChildren()) do
+                if d.Name == "Iron" and (d.Position - hrp.Position).Magnitude < 10 then
+                    dropped = d
                     break
                 end
             end
         end
 
-        if droppedIron then
-            -- Teleport close to dropped iron
-            hrp.CFrame = droppedIron.CFrame + Vector3.new(0, 3, 0)
+        if dropped then
+            hrp.CFrame = dropped.CFrame + Vector3.new(0, 3, 0)
             wait(0.2)
-            -- Activate proximity prompt to pick it up
-            if activateProximityPrompt(droppedIron) then
-                print("Picked up dropped iron")
-            else
-                print("No proximity prompt on dropped iron")
-            end
-        else
-            print("No dropped iron found nearby")
+            activatePrompt(dropped)
         end
 
         wait(0.5)
@@ -95,17 +78,11 @@ local function mineIronPart(ironPart)
 end
 
 local function main()
-    local irons = getIronParts()
-    for _, ironPart in ipairs(irons) do
-        local stopped = mineIronPart(ironPart)
-        if stopped then
-            -- Damage was detected, stop all mining and go to sell
-            break
-        end
+    for _, node in ipairs(getIronParts()) do
+        if mineNode(node) then break end
     end
-    -- After mining or if stopped by damage, teleport to sell location
     hrp.CFrame = sellCFrame
-    print("Teleported to sell location")
+    print("Mining done — teleported to sell.")
 end
 
 main()
