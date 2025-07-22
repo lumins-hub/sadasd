@@ -21,7 +21,7 @@ mainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
 mainFrame.BackgroundColor3 = Color3.fromRGB(0, 128, 128)
 mainFrame.ClipsDescendants = true
 mainFrame.ZIndex = 10
-mainFrame.DisplayOrder = 1000 -- <-- makes it always on top
+screenGui.DisplayOrder = 1000 -- <-- makes it always on top
 mainFrame.Parent = screenGui
 
 -- Rounded corners & improved cyan->aquamarine gradient
