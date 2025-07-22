@@ -1,0 +1,77 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local backpackPath = player:WaitForChild("PlayerGui"):WaitForChild("Backpack"):WaitForChild("Frame"):WaitForChild("Frame")
+
+local frameNames = {
+    "Frame1",
+    "Frame2",
+    "Frame3",
+    "Frame4",
+    "Frame5"
+}
+
+local targetPos = Vector3.new(-35, 140, -397)
+local clickRadius = 5 -- studs
+
+-- Prepare buttons and track Amount connections to avoid duplicates
+local buttons = {}
+local connections = {}
+
+for _, frameName in ipairs(frameNames) do
+    local frame = backpackPath:WaitForChild(frameName)
+    local btn = frame:WaitForChild("Frame"):WaitForChild("TextButton") -- Adjust if needed
+    table.insert(buttons, btn)
+
+    local amountValue = frame:WaitForChild("CurrentItem"):WaitForChild("Amount")
+    local textbox = frame:WaitForChild("Frame"):WaitForChild("TextBox")
+
+    -- Initial sync
+    textbox.Text = tostring(amountValue.Value)
+
+    -- Disconnect old connection if exists
+    if connections[frameName] then
+        connections[frameName]:Disconnect()
+    end
+
+    -- Connect property change once
+    connections[frameName] = amountValue:GetPropertyChangedSignal("Value"):Connect(function()
+        textbox.Text = tostring(amountValue.Value)
+    end)
+end
+
+local function clickButtons()
+    for _, btn in ipairs(buttons) do
+        if btn and btn:IsA("TextButton") then
+            print("Clicking button:", btn:GetFullName())
+            btn:FireClick()
+            wait(0.1)
+        end
+    end
+end
+
+local function isNearTarget()
+    local char = player.Character
+    if not char then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    return (hrp.Position - targetPos).Magnitude <= clickRadius
+end
+
+local clickedRecently = false
+
+while true do
+    -- If near target and haven’t clicked recently, click buttons
+    if isNearTarget() then
+        if not clickedRecently then
+            print("Near target position, clicking buttons...")
+            clickButtons()
+            clickedRecently = true
+        end
+    else
+        -- Reset to allow clicking again when re-entering radius
+        clickedRecently = false
+    end
+
+    wait(1) -- Check every second, adjust as needed
+end
