@@ -21,17 +21,18 @@ mainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
 mainFrame.BackgroundColor3 = Color3.fromRGB(0, 128, 128)
 mainFrame.ClipsDescendants = true
 mainFrame.ZIndex = 10
+mainFrame.DisplayOrder = 1000 -- <-- makes it always on top
 mainFrame.Parent = screenGui
 
--- Rounded corners & gradient
+-- Rounded corners & improved cyan->aquamarine gradient
 local uicorner = Instance.new("UICorner")
 uicorner.CornerRadius = UDim.new(0, 20)
 uicorner.Parent = mainFrame
 
 local uiGradient = Instance.new("UIGradient")
 uiGradient.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 150, 136)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(72, 201, 176))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 255)),       -- Cyan
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(127, 255, 212))      -- Aquamarine
 }
 uiGradient.Rotation = 45
 uiGradient.Parent = mainFrame
@@ -278,6 +279,7 @@ end)
 local function keepOnTop()
 	screenGui.Parent = PlayerGui
 	mainFrame.ZIndex = 10
+	mainFrame.DisplayOrder = 1000
 end
 
 GuiService.MenuOpened:Connect(keepOnTop)
