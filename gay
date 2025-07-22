@@ -1,0 +1,86 @@
+local player = game:GetService("Players").LocalPlayer
+local backpackPath = player:WaitForChild("PlayerGui"):WaitForChild("Backpack"):WaitForChild("Frame"):WaitForChild("Frame")
+
+local frameNames = {
+    "Frame1",
+    "Frame2",
+    "Frame3",
+    "Frame4",
+    "Frame5"
+}
+
+-- Your existing syncing loop (unchanged)
+coroutine.wrap(function()
+    while true do
+        for _, frameName in ipairs(frameNames) do
+            local success, err = pcall(function()
+                local frame = backpackPath:WaitForChild(frameName)
+                local amountValue = frame:WaitForChild("CurrentItem"):WaitForChild("Amount")
+                local textbox = frame:WaitForChild("Frame"):WaitForChild("TextBox")
+
+                -- Set initial value
+                textbox.Text = tostring(amountValue.Value)
+
+                -- Connect to update TextBox on Amount changes (may reconnect multiple times)
+                amountValue:GetPropertyChangedSignal("Value"):Connect(function()
+                    textbox.Text = tostring(amountValue.Value)
+                end)
+            end)
+
+            if not success then
+                warn("Error in " .. frameName .. ": " .. tostring(err))
+            end
+        end
+
+        print("[💣] Synced TextBoxes with real Amount values.")
+
+        wait(5) -- wait 5 seconds before next sync cycle; adjust as needed
+    end
+end)()
+
+-- New proximity drop loop running independently
+coroutine.wrap(function()
+    local targetPos = Vector3.new(-35, 140, -397)
+    local clickRadius = 5 -- studs
+
+    local function isNearTarget()
+        local char = player.Character
+        if not char then return false end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return false end
+        return (hrp.Position - targetPos).Magnitude <= clickRadius
+    end
+
+    local function dropAll()
+        for _, frameName in ipairs(frameNames) do
+            local frame = backpackPath:FindFirstChild(frameName)
+            if frame then
+                local dropRemote = frame:FindFirstChild("Drop")
+                local textbox = frame:FindFirstChild("Frame") and frame.Frame:FindFirstChild("TextBox")
+                if dropRemote and textbox then
+                    local amount = tonumber(textbox.Text)
+                    if amount then
+                        print("Dropping", amount, "from", frameName)
+                        dropRemote:FireServer(amount)
+                        wait(0.1)
+                    end
+                end
+            end
+        end
+    end
+
+    local droppedRecently = false
+
+    while true do
+        if isNearTarget() then
+            if not droppedRecently then
+                print("Player near target, dropping all items...")
+                dropAll()
+                droppedRecently = true
+            end
+        else
+            droppedRecently = false
+        end
+        wait(1)
+    end
+end)()
