@@ -1,0 +1,287 @@
+local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- === Create main ScreenGui ===
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ByteLockeHub"
+screenGui.Parent = PlayerGui
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+screenGui.IgnoreGuiInset = true
+
+-- === Main Frame ===
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 350, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 128, 128)
+mainFrame.ClipsDescendants = true
+mainFrame.ZIndex = 10
+screenGui.DisplayOrder = 1000 -- <-- makes it always on top
+mainFrame.Parent = screenGui
+
+-- Rounded corners & improved cyan->aquamarine gradient
+local uicorner = Instance.new("UICorner")
+uicorner.CornerRadius = UDim.new(0, 20)
+uicorner.Parent = mainFrame
+
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 255)),       -- Cyan
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(127, 255, 212))      -- Aquamarine
+}
+uiGradient.Rotation = 45
+uiGradient.Parent = mainFrame
+
+-- === Title Bar ===
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.BackgroundTransparency = 1
+titleBar.Parent = mainFrame
+
+-- Title Text
+local titleText = Instance.new("TextLabel")
+titleText.Name = "TitleText"
+titleText.Text = "bytelocke"
+titleText.Size = UDim2.new(0.5, 0, 1, 0)
+titleText.Position = UDim2.new(0, 15, 0, 0)
+titleText.BackgroundTransparency = 1
+titleText.TextColor3 = Color3.fromRGB(230, 255, 250)
+titleText.Font = Enum.Font.GothamBold
+titleText.TextSize = 24
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+titleText.Parent = titleBar
+
+-- === Close Button ===
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Text = "✕"
+closeButton.Size = UDim2.new(0, 40, 1, 0)
+closeButton.Position = UDim2.new(1, -45, 0, 0)
+closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeButton.TextColor3 = Color3.new(1,1,1)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 24
+closeButton.AutoButtonColor = true
+closeButton.Parent = titleBar
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 12)
+closeCorner.Parent = closeButton
+
+closeButton.MouseButton1Click:Connect(function()
+	screenGui.Enabled = false
+end)
+
+-- === Minimize Button ===
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Text = "—"
+minimizeButton.Size = UDim2.new(0, 40, 1, 0)
+minimizeButton.Position = UDim2.new(1, -90, 0, 0)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(70, 130, 130)
+minimizeButton.TextColor3 = Color3.new(1,1,1)
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 30
+minimizeButton.AutoButtonColor = true
+minimizeButton.Parent = titleBar
+
+local minimizeCorner = Instance.new("UICorner")
+minimizeCorner.CornerRadius = UDim.new(0, 12)
+minimizeCorner.Parent = minimizeButton
+
+-- Container that holds buttons area
+local buttonsContainer = Instance.new("Frame")
+buttonsContainer.Name = "ButtonsContainer"
+buttonsContainer.Size = UDim2.new(1, 0, 1, -80)
+buttonsContainer.Position = UDim2.new(0, 0, 0, 80)
+buttonsContainer.BackgroundTransparency = 1
+buttonsContainer.Parent = mainFrame
+
+-- === Tabs Bar ===
+local tabsBar = Instance.new("Frame")
+tabsBar.Name = "TabsBar"
+tabsBar.Size = UDim2.new(1, 0, 0, 40)
+tabsBar.Position = UDim2.new(0, 0, 0, 40)
+tabsBar.BackgroundTransparency = 1
+tabsBar.Parent = mainFrame
+
+-- Tab Button Creation Function
+local function createTabButton(text, posX)
+	local tabBtn = Instance.new("TextButton")
+	tabBtn.Name = text .. "Tab"
+	tabBtn.Text = text
+	tabBtn.Size = UDim2.new(0, 120, 1, 0)
+	tabBtn.Position = UDim2.new(0, posX, 0, 0)
+	tabBtn.BackgroundColor3 = Color3.fromRGB(20, 90, 85)
+	tabBtn.TextColor3 = Color3.fromRGB(230, 255, 250)
+	tabBtn.Font = Enum.Font.GothamBold
+	tabBtn.TextSize = 20
+	tabBtn.AutoButtonColor = true
+	tabBtn.Parent = tabsBar
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 12)
+	corner.Parent = tabBtn
+	return tabBtn
+end
+
+-- Create tabs (only "Lithor" for now)
+local lithorTabBtn = createTabButton("Lithor", 10)
+
+-- Container for Lithor tab content
+local lithorContainer = Instance.new("Frame")
+lithorContainer.Name = "LithorContainer"
+lithorContainer.Size = UDim2.new(1, 0, 1, 0)
+lithorContainer.BackgroundTransparency = 1
+lithorContainer.Parent = buttonsContainer
+
+-- Hide all tab containers function (for scalability)
+local function hideAllTabs()
+	for _, child in ipairs(buttonsContainer:GetChildren()) do
+		if child:IsA("Frame") then
+			child.Visible = false
+		end
+	end
+end
+
+-- Show Lithor tab on start
+hideAllTabs()
+lithorContainer.Visible = true
+
+lithorTabBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 136) -- active color
+
+-- Tab switching
+lithorTabBtn.MouseButton1Click:Connect(function()
+	hideAllTabs()
+	lithorContainer.Visible = true
+	lithorTabBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 136)
+
+	-- If you add more tabs, reset their colors here
+end)
+
+-- Button creation function inside Lithor tab
+local function createLithorButton(text, posY, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 260, 0, 50)
+	btn.Position = UDim2.new(0, 40, 0, posY)
+	btn.BackgroundColor3 = Color3.fromRGB(20, 90, 85)
+	btn.BackgroundTransparency = 0
+	btn.Text = text
+	btn.TextColor3 = Color3.fromRGB(230, 255, 250)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 22
+	btn.AutoButtonColor = true
+	btn.Parent = lithorContainer
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 12)
+	corner.Parent = btn
+
+	btn.MouseButton1Click:Connect(callback)
+	return btn
+end
+
+-- Add your buttons under Lithor tab
+
+createLithorButton("Vases", 20, function()
+	local success, err = pcall(function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/lumins-hub/sadasd/refs/heads/main/newest", true))()
+	end)
+	if not success then warn("Vases error:", err) end
+end)
+
+createLithorButton("Inventory", 90, function()
+	local success, err = pcall(function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/lumins-hub/sadasd/refs/heads/main/inventory", true))()
+	end)
+	if not success then warn("Inventory error:", err) end
+end)
+
+createLithorButton("Mining (W.I.P)", 160, function()
+	local success, err = pcall(function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/lumins-hub/sadasd/refs/heads/main/ironmine", true))()
+	end)
+	if not success then warn("Mining error:", err) end
+end)
+
+-- === Minimize logic ===
+local minimized = false
+minimizeButton.MouseButton1Click:Connect(function()
+	if minimized then
+		-- Restore
+		mainFrame.Size = UDim2.new(0, 350, 0, 300)
+		buttonsContainer.Visible = true
+		tabsBar.Visible = true
+		minimized = false
+	else
+		-- Minimize
+		mainFrame.Size = UDim2.new(0, 350, 0, 40)
+		buttonsContainer.Visible = false
+		tabsBar.Visible = false
+		minimized = true
+	end
+end)
+
+-- === Draggable logic ===
+local dragging = false
+local dragInput = nil
+local dragStart = nil
+local startPos = nil
+
+local function update(input)
+	local delta = input.Position - dragStart
+	local newPosX = startPos.X.Offset + delta.X
+	local newPosY = startPos.Y.Offset + delta.Y
+
+	local screenSize = workspace.CurrentCamera.ViewportSize
+	local frameSize = mainFrame.AbsoluteSize
+
+	-- Clamp so the frame stays fully on screen
+	newPosX = math.clamp(newPosX, 0, screenSize.X - frameSize.X)
+	newPosY = math.clamp(newPosY, 0, screenSize.Y - frameSize.Y)
+
+	mainFrame.Position = UDim2.new(0, newPosX, 0, newPosY)
+end
+
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+-- Keep GUI always on top by resetting Parent on menu open/close
+local function keepOnTop()
+	screenGui.Parent = PlayerGui
+	mainFrame.ZIndex = 10
+	mainFrame.DisplayOrder = 1000
+end
+
+GuiService.MenuOpened:Connect(keepOnTop)
+GuiService.MenuClosed:Connect(keepOnTop)
+keepOnTop()
