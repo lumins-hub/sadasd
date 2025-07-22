@@ -36,44 +36,55 @@ local function activatePrompt(part)
     return false
 end
 
+local function droppedNearby(names)
+    local nearby = {}
+    local drops = workspace:FindFirstChild("DroppedMaterials")
+    if not drops then return nearby end
+
+    for _, drop in ipairs(drops:GetChildren()) do
+        if table.find(names, drop.Name) and (drop.Position - hrp.Position).Magnitude < 12 then
+            nearby[drop.Name] = drop
+        end
+    end
+
+    return nearby
+end
+
 local function mineNode(node)
-    for i = 1, 4 do
+    for i = 1, 3 do
         if damaged then
             hrp.CFrame = sellCFrame
             return true
         end
 
-        -- Teleport to iron node
+        -- Move to node
         hrp.CFrame = node.CFrame + Vector3.new(0, 3, 0)
         wait(0.2)
 
-        -- Fire the remote with only one arg now
+        -- Swing
         local args = {
             workspace:WaitForChild("Iron"):WaitForChild("Iron"):WaitForChild("Rock")
         }
         remote:FireServer(unpack(args))
-        wait(0.3)
+        wait(0.4)
 
-        -- Try to pick up dropped iron
-        local dropped
-        local drops = workspace:FindFirstChild("DroppedMaterials")
-        if drops then
-            for _, d in ipairs(drops:GetChildren()) do
-                if d.Name == "Iron" and (d.Position - hrp.Position).Magnitude < 10 then
-                    dropped = d
-                    break
-                end
-            end
+        -- Check if both Iron and Rock dropped
+        local nearby = droppedNearby({"Iron", "Rock"})
+        if nearby["Iron"] and nearby["Rock"] then
+            print("Iron + Rock detected nearby. Stopping swings early.")
+            break
         end
-
-        if dropped then
-            hrp.CFrame = dropped.CFrame + Vector3.new(0, 3, 0)
-            wait(0.2)
-            activatePrompt(dropped)
-        end
-
-        wait(0.5)
     end
+
+    -- Pick up dropped materials
+    local materials = droppedNearby({"Iron", "Rock"})
+    for _, drop in pairs(materials) do
+        hrp.CFrame = drop.CFrame + Vector3.new(0, 3, 0)
+        wait(0.2)
+        activatePrompt(drop)
+        wait(0.3)
+    end
+
     return false
 end
 
