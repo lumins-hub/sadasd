@@ -1,0 +1,94 @@
+local player = game:GetService("Players").LocalPlayer
+local backpackPath = player:WaitForChild("PlayerGui"):WaitForChild("Backpack"):WaitForChild("Frame"):WaitForChild("Frame")
+
+local frameNames = {
+    "Frame1",
+    "Frame2",
+    "Frame3",
+    "Frame4",
+    "Frame5"
+}
+
+-- TEXT SYNC LOOP
+coroutine.wrap(function()
+    while true do
+        for _, frameName in ipairs(frameNames) do
+            local success, err = pcall(function()
+                local frame = backpackPath:WaitForChild(frameName)
+                local amountValue = frame:WaitForChild("CurrentItem"):WaitForChild("Amount")
+                local textbox = frame:WaitForChild("Frame"):WaitForChild("TextBox")
+
+                textbox.Text = tostring(amountValue.Value)
+
+                amountValue:GetPropertyChangedSignal("Value"):Connect(function()
+                    textbox.Text = tostring(amountValue.Value)
+                end)
+            end)
+
+            if not success then
+                warn("Error in " .. frameName .. ": " .. tostring(err))
+            end
+        end
+
+        print("[💣] Synced TextBoxes with real Amount values.")
+        wait(5)
+    end
+end)()
+
+-- DROP LOOP
+coroutine.wrap(function()
+    local targetPos = Vector3.new(-35, 140, -397)
+    local clickRadius = 5
+    local droppedRecently = false
+
+    local function isNearTarget()
+        local char = player.Character
+        if not char then return false end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return false end
+
+        local dist = (hrp.Position - targetPos).Magnitude
+        return dist <= clickRadius
+    end
+
+    local function dropAll()
+        for _, frameName in ipairs(frameNames) do
+            local frame = backpackPath:WaitForChild(frameName)
+            local scriptFolder = frame:FindFirstChild("Script")
+            if not scriptFolder then
+                warn("Missing Script folder in " .. frameName)
+                continue
+            end
+
+            local dropRemote = scriptFolder:FindFirstChild("Drop")
+            if not dropRemote then
+                warn("Missing Drop remote in " .. frameName)
+                continue
+            end
+
+            local textbox = frame:WaitForChild("Frame"):WaitForChild("TextBox")
+            local amount = tonumber(textbox.Text)
+
+            if amount and amount > 0 then
+                print("Dropping", amount, "from", frameName)
+                dropRemote:FireServer(amount)
+                wait(0.1)
+            else
+                print("Skipping", frameName, "- invalid amount:", textbox.Text)
+            end
+        end
+    end
+
+    while true do
+        if isNearTarget() then
+            if not droppedRecently then
+                print("✅ Player near target. Dropping items...")
+                dropAll()
+                droppedRecently = true
+            end
+        else
+            droppedRecently = false
+        end
+        wait(1)
+    end
+end)()
