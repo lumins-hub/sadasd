@@ -50,14 +50,32 @@ local function droppedNearby(names)
     return nearby
 end
 
+local function pickUpMaterials(materials)
+    for _, drop in pairs(materials) do
+        hrp.CFrame = drop.CFrame + Vector3.new(0, 3, 0)
+        wait(0.2)
+        activatePrompt(drop)
+        wait(0.3)
+    end
+end
+
 local function mineNode(node)
-    for i = 1, 3 do
+    local swings = 0
+    while swings < 3 do
         if damaged then
             hrp.CFrame = sellCFrame
             return true
         end
 
-        -- Move to node
+        -- Check if drops exist BEFORE swinging
+        local nearby = droppedNearby({"Iron", "Rock"})
+        if nearby["Iron"] and nearby["Rock"] then
+            print("Drops detected before swinging — stop swinging and pick up.")
+            pickUpMaterials(nearby)
+            return false -- done mining this node, move on
+        end
+
+        -- Teleport to node
         hrp.CFrame = node.CFrame + Vector3.new(0, 3, 0)
         wait(0.2)
 
@@ -66,25 +84,19 @@ local function mineNode(node)
             workspace:WaitForChild("Iron"):WaitForChild("Iron"):WaitForChild("Rock")
         }
         remote:FireServer(unpack(args))
+        swings = swings + 1
         wait(0.4)
 
-        -- Check if both Iron and Rock dropped
-        local nearby = droppedNearby({"Iron", "Rock"})
+        -- Check if drops exist AFTER swinging
+        nearby = droppedNearby({"Iron", "Rock"})
         if nearby["Iron"] and nearby["Rock"] then
-            print("Iron + Rock detected nearby. Stopping swings early.")
-            break
+            print("Drops detected after swinging — stop swinging and pick up.")
+            pickUpMaterials(nearby)
+            return false -- done mining this node, move on
         end
     end
 
-    -- Pick up dropped materials
-    local materials = droppedNearby({"Iron", "Rock"})
-    for _, drop in pairs(materials) do
-        hrp.CFrame = drop.CFrame + Vector3.new(0, 3, 0)
-        wait(0.2)
-        activatePrompt(drop)
-        wait(0.3)
-    end
-
+    -- If max swings reached but no drops, just move on
     return false
 end
 
