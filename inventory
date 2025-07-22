@@ -1,4 +1,5 @@
-local player = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local backpackPath = player:WaitForChild("PlayerGui"):WaitForChild("Backpack"):WaitForChild("Frame"):WaitForChild("Frame")
 
 local frameNames = {
@@ -9,31 +10,67 @@ local frameNames = {
     "Frame5"
 }
 
-while true do
-    for _, frameName in ipairs(frameNames) do
-        local success, err = pcall(function()
-            local frame = backpackPath:WaitForChild(frameName)
-            local amountValue = frame:WaitForChild("CurrentItem"):WaitForChild("Amount")
-            local textbox = frame:WaitForChild("Frame"):WaitForChild("TextBox")
+local targetPos = Vector3.new(-35, 140, -397)
+local clickRadius = 5 -- studs
 
-            -- Set initial value
-            textbox.Text = tostring(amountValue.Value)
+-- Prepare buttons and track Amount connections to avoid duplicates
+local buttons = {}
+local connections = {}
 
-            -- Clear previous connections before connecting new ones (optional but recommended)
-            -- You'd need to store connections to disconnect them, 
-            -- but for simplicity, we just connect here each loop (could cause multiple connections!)
+for _, frameName in ipairs(frameNames) do
+    local frame = backpackPath:WaitForChild(frameName)
+    local btn = frame:WaitForChild("Frame"):WaitForChild("TextButton") -- Adjust if needed
+    table.insert(buttons, btn)
 
-            amountValue:GetPropertyChangedSignal("Value"):Connect(function()
-                textbox.Text = tostring(amountValue.Value)
-            end)
-        end)
+    local amountValue = frame:WaitForChild("CurrentItem"):WaitForChild("Amount")
+    local textbox = frame:WaitForChild("Frame"):WaitForChild("TextBox")
 
-        if not success then
-            warn("Error in " .. frameName .. ": " .. tostring(err))
-        end
+    -- Initial sync
+    textbox.Text = tostring(amountValue.Value)
+
+    -- Disconnect old connection if exists
+    if connections[frameName] then
+        connections[frameName]:Disconnect()
     end
 
-    print("[💣] Synced TextBoxes with real Amount values.")
+    -- Connect property change once
+    connections[frameName] = amountValue:GetPropertyChangedSignal("Value"):Connect(function()
+        textbox.Text = tostring(amountValue.Value)
+    end)
+end
 
-    wait(5) -- wait 5 seconds before next sync cycle; adjust as needed
+local function clickButtons()
+    for _, btn in ipairs(buttons) do
+        if btn and btn:IsA("TextButton") then
+            btn:Activate()
+            wait(0.1)
+        end
+    end
+end
+
+local function isNearTarget()
+    local char = player.Character
+    if not char then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    return (hrp.Position - targetPos).Magnitude <= clickRadius
+end
+
+local clickedRecently = false
+
+while true do
+    -- If near target and haven’t clicked recently, click buttons
+    if isNearTarget() then
+        if not clickedRecently then
+            print("Near target position, clicking buttons...")
+            clickButtons()
+            clickedRecently = true
+        end
+    else
+        -- Reset to allow clicking again when re-entering radius
+        clickedRecently = false
+    end
+
+    wait(1) -- Check every second, adjust as needed
 end
